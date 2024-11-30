@@ -11,7 +11,8 @@ message = (
     "Hey there! I’m Alex, a creative mind who works as a graphic designer by day "
     "and dabbles in painting by night. I love exploring art galleries, finding hidden coffee shops, "
     "and attending live music events. I’m a big believer in enjoying life’s little moments—whether it’s a walk in "
-    "the park or a cozy evening with a good movie. My friends say I’m loyal, thoughtful, and always ready with a terrible pun."
+    "the park or a cozy evening with a good movie. My friends say I’m loyal, thoughtful, "
+    "and always ready with a terrible pun."
 )
 
 # Preamble for model
