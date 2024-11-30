@@ -14,8 +14,7 @@ message = (
     "the park or a cozy evening with a good movie. My friends say I’m loyal, thoughtful, and always ready with a terrible pun."
 )
 
-
-# Preamble for modele
+# Preamble for model
 preamble = (
     "You are an AI trained to summarize information from dating app profile, such as hobby, education, lifestyle, "
     "age, gender, political orientation, etc. You need to give a response for example like that: Hobby: Music, "
