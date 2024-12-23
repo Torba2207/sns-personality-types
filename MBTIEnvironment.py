@@ -50,6 +50,10 @@ class MBTIEnvironment:
         # Determine if done (either max steps reached or prediction made)
         self.done = self.steps >= self.max_steps #or self.steps>=len(self.questions)
         reward = -0.1  # Small penalty for each step to encourage fewer questions
+        if response==1:
+            reward+=1
+        else:
+            reward+=-1
         return self.state, reward, self.done
     
     def reset(self):
