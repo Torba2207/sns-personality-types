@@ -17,14 +17,14 @@ class MBTIEnvironment:
         self.max_steps = max_steps  # Limit the number of questions
         self.done = False  # Flag to indicate if the episode is finished
 
-    def changePersonality(self, random, persomalityID=0):
+    def changePersonality(self, randomPick, persomalityID=0):
         personalities=[
         "INTJ", "INTP", "ENTJ", "ENTP",  # Rational/Analytical types
         "INFJ", "INFP", "ENFJ", "ENFP",  # Idealistic/Compassionate types
         "ISTJ", "ISFJ", "ESTJ", "ESFJ",  # Guardian/Security-oriented types
         "ISTP", "ISFP", "ESTP", "ESFP"   # Artisan/Adventurous types
         ]
-        if random:
+        if randomPick:
             self.mbti_type=random.choice(personalities)
         else:
             self.mbti_type=personalities[persomalityID]
