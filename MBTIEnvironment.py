@@ -2,7 +2,7 @@ import numpy as np
 import random
 
 class MBTIEnvironment:
-    def __init__(self, mbti_type, questions, max_steps=10):
+    def __init__(self, mbti_type, questions, mbti_types,simulation_dataset, max_steps=10):
         """
         Initializes the MBTI environment.
         Args:
@@ -16,18 +16,14 @@ class MBTIEnvironment:
         self.steps = 0  # Track the number of steps/questions asked
         self.max_steps = max_steps  # Limit the number of questions
         self.done = False  # Flag to indicate if the episode is finished
+        self.personalities=mbti_types
+        self.simulation_dataset=simulation_dataset
 
     def changePersonality(self, randomPick, persomalityID=0):
-        personalities=[
-        "INTJ", "INTP", "ENTJ", "ENTP",  # Rational/Analytical types
-        "INFJ", "INFP", "ENFJ", "ENFP",  # Idealistic/Compassionate types
-        "ISTJ", "ISFJ", "ESTJ", "ESFJ",  # Guardian/Security-oriented types
-        "ISTP", "ISFP", "ESTP", "ESFP"   # Artisan/Adventurous types
-        ]
         if randomPick:
-            self.mbti_type=random.choice(personalities)
+            self.mbti_type=random.choice(self.personalities)
         else:
-            self.mbti_type=personalities[persomalityID]
+            self.mbti_type=self.personalities[persomalityID]
             
         
 
@@ -43,6 +39,7 @@ class MBTIEnvironment:
             raise ValueError("Episode is done. Reset the environment.")
         self.steps += 1  # Increment the step count
         question_id = action  # Get the ID of the current question
+        print(self.questions[question_id])
         # Simulated user response: Simple mapping based on MBTI traits (randomized for training)
         response = np.random.choice([0, 1])  # Yes (1) or No (0)
         # Update state with the response
@@ -50,10 +47,6 @@ class MBTIEnvironment:
         # Determine if done (either max steps reached or prediction made)
         self.done = self.steps >= self.max_steps #or self.steps>=len(self.questions)
         reward = -0.1  # Small penalty for each step to encourage fewer questions
-        if response==1:
-            reward+=1
-        else:
-            reward+=-1
         return self.state, reward, self.done
     
     def reset(self):
