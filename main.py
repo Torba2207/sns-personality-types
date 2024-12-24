@@ -4,6 +4,7 @@ import PolicyNetwork as polnet
 import torch
 import torch.optim as optim
 import personsMBTI
+import random
 
 
 def save_model(policy_net, filepath="policy_network.pth"):
@@ -58,6 +59,7 @@ if __name__ == "__main__":
     "Do you feel uncomfortable in unfamiliar social situations?",
     "Do you find small talk difficult or unappealing?",
     "Are you the one who often initiates conversations in social settings?",
+    "Guess Personality..."
     #"Do you prefer one-on-one interactions over group settings?"
     ]
     # Predefined Personalities
@@ -82,7 +84,7 @@ if __name__ == "__main__":
         
     
     # Initialize environment and policy network
-    env = menv.MBTIEnvironment(mbti_type="INTJ", questions=questions, mbti_types=mbti_types,
+    env = menv.MBTIEnvironment(mbti_type=random.choice(mbti_types), questions=questions, mbti_types=mbti_types,
                                 simulation_dataset=data, max_steps=10)
     policy_net = polnet.PolicyNetwork(state_size=len(questions), action_size=len(questions))
     optimizer = optim.Adam(policy_net.parameters(), lr=0.01)

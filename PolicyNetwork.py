@@ -43,7 +43,10 @@ def train_policy_network(env, policy_net, optimizer, episodes=1000, gamma=0.99):
             discounted_rewards.insert(0, cumulative_reward)
         # Normalize rewards
         discounted_rewards = torch.tensor(discounted_rewards)
-        discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-9)
+        if discounted_rewards.std() == 0:
+            discounted_rewards = discounted_rewards - discounted_rewards.mean()
+        else:
+            discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-9)
         # Compute loss
         loss = []
         for log_prob, reward in zip(log_probs, discounted_rewards):

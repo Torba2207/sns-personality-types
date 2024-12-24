@@ -12,7 +12,8 @@ class MBTIEnvironment:
         """
         self.mbti_type = mbti_type  # True MBTI type (used for simulation, not in user mode)
         self.questions = questions  # List of questions the agent can ask
-        self.state = [-1] * len(questions)  # State vector initialized to -1 (unasked questions)
+        # State vector initialized to -1 (unasked questions) and one more state for action of prediction
+        self.state = [-1] * len(questions)  
         self.steps = 0  # Track the number of steps/questions asked
         self.max_steps = max_steps  # Limit the number of questions
         self.done = False  # Flag to indicate if the episode is finished
@@ -38,15 +39,30 @@ class MBTIEnvironment:
         if self.done or self.steps >= self.max_steps:
             raise ValueError("Episode is done. Reset the environment.")
         self.steps += 1  # Increment the step count
+        if action==len(self.state)-1:
+            predicted_pers=self.predict_personality()
+            print("Prediction initiated...")
+            print(f"Actual Type:{self.mbti_type} Predicted Type:{predicted_pers}")
+            if predicted_pers==self.mbti_type:
+                reward=0.1
+                self.state[action]=1
+            else:
+                reward=-0.1
+                self.state[action]=0
+            self.done=True
+            return self.state, reward, self.done
         question_id = action  # Get the ID of the current question
         print(self.questions[question_id])
         # Simulated user response: Simple mapping based on MBTI traits (randomized for training)
-        response = np.random.choice([0, 1])  # Yes (1) or No (0)
+        response = self.get_response(self.mbti_type,question_id)  # Yes (1) or No (0)
         # Update state with the response
         self.state[question_id] = response
         # Determine if done (either max steps reached or prediction made)
         self.done = self.steps >= self.max_steps #or self.steps>=len(self.questions)
-        reward = -0.1  # Small penalty for each step to encourage fewer questions
+        reward = -0.05  # Small penalty for each step to encourage fewer questions
+        if self.done:
+            reward=-0.1
+        
         return self.state, reward, self.done
     
     def reset(self):
@@ -56,5 +72,24 @@ class MBTIEnvironment:
         self.done = False  # Mark the episode as not done
         self.changePersonality(True)
         return self.state
+    
+    def get_response(self, mbti, question_id):
+        sim_person=random.choice(self.simulation_dataset[mbti])
+        if sim_person[question_id]=="yes":
+            return 1
+        return 0
+    
+    def predict_personality(self):
+        scores=[]
+        for mbti in self.personalities:
+            match_score=sum(
+                self.state[i]==self.get_response(mbti,i)
+                for i in range(len(self.questions)-1)
+                if self.state!=-1
+            )
+            scores.append((mbti,match_score))
+        predicted_type=max(scores,key=lambda x: x[1])[0]
+        return predicted_type
+        
 
 
