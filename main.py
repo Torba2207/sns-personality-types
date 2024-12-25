@@ -74,10 +74,10 @@ if __name__ == "__main__":
     data=dict()
 
     for mbti in mbti_types:
-        data[mbti]=[]
+        data[mbti] = []
         for i in range(1,4):
-            mbtilow=mbti.lower()
-            array_name=f"{mbtilow}{i}"
+            mbti_low = mbti.lower()
+            array_name=f"{mbti_low}{i}"
             if hasattr(personsMBTI, array_name):
                 data[mbti].append(getattr(personsMBTI,array_name))
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     env = menv.MBTIEnvironment(mbti_type=random.choice(mbti_types), questions=questions, mbti_types=mbti_types,
                                 simulation_dataset=data, max_steps=10)
     policy_net = polnet.PolicyNetwork(state_size=len(questions), action_size=len(questions))
-    optimizer = optim.Adam(policy_net.parameters(), lr=0.01)
+    optimizer = optim.Adam(policy_net.parameters(), lr=1e-4)
 
     # Option to load model or train it
     load_existing_model = input("Do you want to load an existing model? (yes/no): ").strip().lower()
