@@ -2,7 +2,7 @@ import numpy as np
 import random
 
 class MBTIEnvironment:
-    def __init__(self, mbti_type, questions, mbti_types,simulation_dataset, max_steps=10):
+    def __init__(self, mbti_type, questions, mbti_types, simulation_dataset, max_steps=10):
         """
         Initializes the MBTI environment.
         Args:
@@ -17,14 +17,15 @@ class MBTIEnvironment:
         self.steps = 0  # Track the number of steps/questions asked
         self.max_steps = max_steps  # Limit the number of questions
         self.done = False  # Flag to indicate if the episode is finished
-        self.personalities=mbti_types
-        self.simulation_dataset=simulation_dataset
+        self.personalities = mbti_types
+        self.simulation_dataset = simulation_dataset
+        self.reward = -0.1
 
-    def changePersonality(self, randomPick, persomalityID=0):
-        if randomPick:
-            self.mbti_type=random.choice(self.personalities)
+    def change_personality(self, random_pick, personality_id=0):
+        if random_pick:
+            self.mbti_type = random.choice(self.personalities)
         else:
-            self.mbti_type=self.personalities[persomalityID]
+            self.mbti_type = self.personalities[personality_id]
             
         
 
@@ -39,18 +40,18 @@ class MBTIEnvironment:
         if self.done or self.steps >= self.max_steps:
             raise ValueError("Episode is done. Reset the environment.")
         self.steps += 1  # Increment the step count
-        if action==len(self.state)-1:
-            predicted_pers=self.predict_personality()
+        if action == len(self.state)-1:
+            predicted_pers = self.predict_personality()
             print("Prediction initiated...")
             print(f"Actual Type:{self.mbti_type} Predicted Type:{predicted_pers}")
-            if predicted_pers==self.mbti_type:
-                reward=0.1
-                self.state[action]=1
+            if predicted_pers == self.mbti_type:
+                self.reward += 10.0
+                self.state[action] = 1
             else:
-                reward=-0.1
-                self.state[action]=0
-            self.done=True
-            return self.state, reward, self.done
+                self.reward -= 10.0
+                self.state[action] = 0
+            self.done = True
+            return self.state, self.reward, self.done
         question_id = action  # Get the ID of the current question
         print(self.questions[question_id])
         # Simulated user response: Simple mapping based on MBTI traits (randomized for training)
@@ -59,33 +60,34 @@ class MBTIEnvironment:
         self.state[question_id] = response
         # Determine if done (either max steps reached or prediction made)
         self.done = self.steps >= self.max_steps #or self.steps>=len(self.questions)
-        reward = -0.05  # Small penalty for each step to encourage fewer questions
+        self.reward -= 0.05  # Small penalty for each step to encourage fewer questions
         if self.done:
-            reward=-0.1
+            self.reward = -0.1
         
-        return self.state, reward, self.done
+        return self.state, self.reward, self.done
     
     def reset(self):
         """Resets the environment for a new episode."""
         self.state = [-1] * len(self.questions)  # Reset the state to all questions unasked
         self.steps = 0  # Reset the step count
         self.done = False  # Mark the episode as not done
-        self.changePersonality(True)
+        self.change_personality(True)
+        self.reward = -0.1
         return self.state
     
     def get_response(self, mbti, question_id):
-        sim_person=random.choice(self.simulation_dataset[mbti])
-        if sim_person[question_id]=="yes":
+        sim_person = random.choice(self.simulation_dataset[mbti])
+        if sim_person[question_id] == "yes":
             return 1
         return 0
     
     def predict_personality(self):
         scores=[]
         for mbti in self.personalities:
-            match_score=sum(
-                self.state[i]==self.get_response(mbti,i)
-                for i in range(len(self.questions)-1)
-                if self.state!=-1
+            match_score = sum(
+                self.state[i] == self.get_response(mbti,i)
+                for i in range(len(self.questions) - 1)
+                if self.state != -1
             )
             scores.append((mbti,match_score))
         predicted_type=max(scores,key=lambda x: x[1])[0]

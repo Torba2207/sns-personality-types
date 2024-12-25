@@ -12,7 +12,7 @@ class PolicyNetwork(nn.Module):
     def forward(self, x):
         x = torch.relu(self.fc1(x))  # Apply ReLU activation after the first layer
         x = torch.relu(self.fc2(x))  # Apply ReLU after the second layer
-        x = torch.softmax(self.fc3(x), dim=-1)  # Apply softmax to get action probabilities
+        x = torch.softmax(self.fc3(x) - self.fc3(x).max(dim=-1, keepdim=True)[0], dim=-1) # Apply softmax to get action probabilities
         return x
     
 def train_policy_network(env, policy_net, optimizer, episodes=1000, gamma=0.99):
@@ -41,9 +41,15 @@ def train_policy_network(env, policy_net, optimizer, episodes=1000, gamma=0.99):
         for r in reversed(rewards):
             cumulative_reward = r + gamma * cumulative_reward
             discounted_rewards.insert(0, cumulative_reward)
-        # Normalize rewards
+
+        # Convert to tensor
         discounted_rewards = torch.tensor(discounted_rewards)
-        if discounted_rewards.std() == 0:
+
+        # Handle cases where rewards are empty or single-valued
+        if len(discounted_rewards) == 0:
+            print("Warning: No rewards collected in this episode.")
+            continue
+        elif len(discounted_rewards) == 1:
             discounted_rewards = discounted_rewards - discounted_rewards.mean()
         else:
             discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-9)
@@ -55,6 +61,7 @@ def train_policy_network(env, policy_net, optimizer, episodes=1000, gamma=0.99):
         # Backpropagation
         optimizer.zero_grad()  # Clear previous gradients
         loss.backward()  # Compute new gradients
+        torch.nn.utils.clip_grad_norm_(policy_net.parameters(), max_norm=1.0)
         optimizer.step()  # Update model parameters
         all_rewards.append(sum(rewards))
         #if episode==0 or episode % episode == 0:
