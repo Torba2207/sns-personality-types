@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import statistics
 
 class PolicyNetwork(nn.Module):
     def __init__(self, state_size, action_size):
@@ -38,10 +39,12 @@ def train_policy_network(env, policy_net, optimizer, episodes=1000, gamma=0.99):
         # Compute the discounted rewards
         discounted_rewards = []
         cumulative_reward = 0
+        #print(rewards)
         for r in reversed(rewards):
-            cumulative_reward = r + gamma * cumulative_reward
+            cumulative_reward = r + gamma * (cumulative_reward)
             discounted_rewards.insert(0, cumulative_reward)
-
+        #discounted_rewards=rewards
+        print(discounted_rewards)
         # Convert to tensor
         discounted_rewards = torch.tensor(discounted_rewards)
 
@@ -50,9 +53,11 @@ def train_policy_network(env, policy_net, optimizer, episodes=1000, gamma=0.99):
             print("Warning: No rewards collected in this episode.")
             continue
         elif len(discounted_rewards) == 1:
-            discounted_rewards = discounted_rewards - discounted_rewards.mean()
+            discounted_rewards[0]=0
+            #discounted_rewards = discounted_rewards - discounted_rewards.mean()
         else:
             discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-9)
+        print(discounted_rewards)
         # Compute loss
         loss = []
         for log_prob, reward in zip(log_probs, discounted_rewards):
@@ -65,5 +70,5 @@ def train_policy_network(env, policy_net, optimizer, episodes=1000, gamma=0.99):
         optimizer.step()  # Update model parameters
         all_rewards.append(sum(rewards))
         #if episode==0 or episode % episode == 0:
-        print(f"Episode {episode}, Total Reward: {sum(rewards)}")
+        print(f"Episode {episode}, Total Reward: {discounted_rewards.sum()}")
     return all_rewards

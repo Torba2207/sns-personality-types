@@ -19,7 +19,7 @@ class MBTIEnvironment:
         self.done = False  # Flag to indicate if the episode is finished
         self.personalities = mbti_types
         self.simulation_dataset = simulation_dataset
-        self.reward = -0.1
+        self.reward = 1
 
     def change_personality(self, random_pick, personality_id=0):
         if random_pick:
@@ -45,10 +45,10 @@ class MBTIEnvironment:
             print("Prediction initiated...")
             print(f"Actual Type:{self.mbti_type} Predicted Type:{predicted_pers}")
             if predicted_pers == self.mbti_type:
-                self.reward += 10.0
+                self.reward = 15.0
                 self.state[action] = 1
             else:
-                self.reward -= 10.0
+                self.reward = 5.0
                 self.state[action] = 0
             self.done = True
             return self.state, self.reward, self.done
@@ -60,9 +60,9 @@ class MBTIEnvironment:
         self.state[question_id] = response
         # Determine if done (either max steps reached or prediction made)
         self.done = self.steps >= self.max_steps #or self.steps>=len(self.questions)
-        self.reward -= 0.05  # Small penalty for each step to encourage fewer questions
+        self.reward = 10   # Small penalty for each step to encourage fewer questions
         if self.done:
-            self.reward = -0.1
+            self.reward =3.0
         
         return self.state, self.reward, self.done
     
@@ -72,7 +72,7 @@ class MBTIEnvironment:
         self.steps = 0  # Reset the step count
         self.done = False  # Mark the episode as not done
         self.change_personality(True)
-        self.reward = -0.1
+        self.reward = 1
         return self.state
     
     def get_response(self, mbti, question_id):
