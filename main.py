@@ -1,100 +1,203 @@
-import MBTIEnvironment as menv
-from PolicyNetwork import train_policy_network
-import PolicyNetwork as polnet
-import torch
-import torch.optim as optim
+import numpy as np
+from tkinter import Tk, Label, Button, Entry, StringVar, messagebox, CENTER
+from CustomDecisionTree import CustomDecisionTree as cdt
+from questionsMBTI import questions, mbti_types
 import personsMBTI
-import random
 
 
-def save_model(policy_net, filepath="policy_network.pth"):
-    torch.save(policy_net.state_dict(), filepath)
-    print("Model saved!")
+def prepare_dataset(data):
+    X = []  # Feature matrix
+    y = []  # Labels
 
-def load_model(policy_net, filepath="policy_network.pth"):
-    policy_net.load_state_dict(torch.load(filepath))
-    policy_net.eval()
-    print("Model loaded!")
+    for mbti, answer_sets in data.items():
+        for answers in answer_sets:
+            X.append([1 if ans == "yes" else 0 for ans in answers])  # Convert 'yes'/'no' to 1/0
+            y.append(mbti_types.index(mbti))  # Use the index of the MBTI type as the label
+
+    return np.array(X), np.array(y)
+
+
+class MBTIApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("MBTI Personality Predictor")
+        self.root.geometry("800x600")
+        self.root.configure(bg="#f0f8ff")  # Light blue background
+        self.custom_tree = None
+        self.user_answers = []
+        self.current_node = None
+        self.current_question_index = 0
+        self.tree_depth = StringVar()  # To store user-provided tree depth
+
+        self.main_menu()
+
+    def main_menu(self):
+        self.clear_window()
+
+        # Title
+        Label(
+            self.root, text="MBTI Personality Predictor", font=("Helvetica", 16, "bold"),
+            bg="#f0f8ff", fg="#333"
+        ).pack(pady=20)
+
+        # Buttons
+        Button(
+            self.root, text="Training Mode", command=self.training_mode, width=20,
+            bg="#4caf50", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+        ).pack(pady=10)
+        Button(
+            self.root, text="User Application Mode", command=self.user_application_mode, width=20,
+            bg="#2196f3", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+        ).pack(pady=10)
+        Button(
+            self.root, text="Exit", command=self.root.quit, width=20,
+            bg="#f44336", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+        ).pack(pady=10)
+
+    def training_mode(self):
+        self.clear_window()
+
+        # Training mode label
+        Label(
+            self.root, text="Training Mode", font=("Helvetica", 16, "bold"),
+            bg="#f0f8ff", fg="#333"
+        ).pack(pady=10)
+
+        # Input for tree depth
+        Label(
+            self.root, text="Enter Tree Depth:", font=("Helvetica", 12),
+            bg="#f0f8ff", fg="#333"
+        ).pack(pady=5)
+        Entry(self.root, textvariable=self.tree_depth, font=("Helvetica", 12), width=10).pack(pady=5)
+
+        # Train button
+        Button(
+            self.root, text="Train", command=self.train_tree, width=20,
+            bg="#4caf50", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+        ).pack(pady=10)
+
+        # Back to main menu button
+        Button(
+            self.root, text="Back to Main Menu", command=self.main_menu, width=20,
+            bg="#2196f3", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+        ).pack(pady=10)
+
+    def train_tree(self):
+        # Get user-specified depth
+        try:
+            depth = int(self.tree_depth.get())
+            if depth <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror("Invalid Input", "Please enter a valid positive integer for tree depth.")
+            return
+
+        # Load Train Data
+        data = {}
+        for mbti in mbti_types:
+            data[mbti] = []
+            for i in range(1, 4):
+                mbti_low = mbti.lower()
+                array_name = f"{mbti_low}{i}"
+                if hasattr(personsMBTI, array_name):
+                    data[mbti].append(getattr(personsMBTI, array_name))
+
+        # Prepare dataset
+        X, y = prepare_dataset(data)
+
+        # Train the custom decision tree
+        self.custom_tree = cdt(max_depth=depth)
+        self.custom_tree.fit(X, y)
+
+        # Display the decision tree plot
+        self.clear_window()
+        Label(
+            self.root, text=f"Decision Tree (Depth: {depth})", font=("Helvetica", 14, "bold"),
+            bg="#f0f8ff", fg="#333"
+        ).pack(pady=10)
+
+        # Back to main menu button
+        Button(
+            self.root, text="Back to Main Menu", command=self.main_menu, width=20,
+            bg="#2196f3", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+        ).pack(pady=10)
+
+    def user_application_mode(self):
+        if self.custom_tree is None:
+            messagebox.showerror("Error", "Train the decision tree first in Training Mode!")
+            return
+
+        self.clear_window()
+        self.user_answers = []
+        self.current_node = self.custom_tree.root
+        self.display_question()
+
+    def display_question(self):
+        self.clear_window()
+
+        if self.current_node.prediction is not None:
+            # Display predicted personality type
+            predicted_type = mbti_types[self.current_node.prediction]
+            Label(
+                self.root, text=f"Your predicted MBTI personality type is: {predicted_type}",
+                font=("Helvetica", 14, "bold"), bg="#f0f8ff", fg="#333", wraplength=350, justify=CENTER
+            ).pack(pady=20)
+
+            Button(
+                self.root, text="Restart", command=self.user_application_mode, width=20,
+                bg="#4caf50", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+            ).pack(pady=10)
+            Button(
+                self.root, text="Back to Main Menu", command=self.main_menu, width=20,
+                bg="#2196f3", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+            ).pack(pady=10)
+            return
+
+        # Display the current question
+        question = questions[self.current_node.feature_index]
+        Label(
+            self.root, text=question, font=("Helvetica", 12), bg="#f0f8ff", fg="#333",
+            wraplength=350, justify=CENTER
+        ).pack(pady=20)
+
+        # Buttons for "Yes" and "No"
+        Button(
+            self.root, text="Yes", command=lambda: self.answer_question(1), width=20,
+            bg="#4caf50", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+        ).pack(pady=10)
+        Button(
+            self.root, text="No", command=lambda: self.answer_question(0), width=20,
+            bg="#f44336", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+        ).pack(pady=10)
+
+        # Back button to revisit the previous question
+        if self.user_answers:
+            Button(
+                self.root, text="Go Back", command=self.go_back, width=20,
+                bg="#2196f3", fg="white", font=("Helvetica", 12), bd=0, highlightthickness=0
+            ).pack(pady=10)
+
+    def answer_question(self, answer):
+        self.user_answers.append((self.current_node, answer))
+
+        if answer == 1:
+            self.current_node = self.current_node.left
+        else:
+            self.current_node = self.current_node.right
+
+        self.display_question()
+
+    def go_back(self):
+        if self.user_answers:
+            self.current_node, _ = self.user_answers.pop()
+            self.display_question()
+
+    def clear_window(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
 
 if __name__ == "__main__":
-    # Define questions and environment
-    questions = [
-    "Do you prefer working alone?",
-    "Do you rely on intuition more than facts?",
-    "Are you emotionally driven?",
-    "Do you like planning ahead?",
-    "Do you feel drained after socializing for extended periods?",
-    "Do you enjoy attending large parties or gatherings?",
-    "Do you prefer to reflect on your thoughts before sharing them with others?",
-    "Do you often seek solitude to recharge your energy?",
-    "Do you enjoy spending time with a few close friends rather than large groups?",
-    "Do you prefer to focus on facts and details rather than ideas and concepts?",
-    "Do you trust your gut feeling when making decisions?",
-    "Do you prefer learning through hands-on experience rather than theoretical knowledge?",
-    "Do you find yourself daydreaming or thinking about abstract ideas?",
-    "Do you value practical solutions over theoretical possibilities?",
-    "Do you prioritize logic and objectivity when making decisions?",
-    "Do you value harmony and avoid conflict in relationships?",
-    "Do you tend to focus on the bigger picture rather than the details?",
-    "Do you make decisions based on how others will feel?",
-    "Do you often get emotional or empathetic when hearing about others' problems?",
-    "Do you prefer to have a structured, organized environment?",
-    "Do you feel comfortable making decisions quickly, even with limited information?",
-    "Do you prefer to plan ahead rather than keeping options open?",
-    "Do you feel stressed when your plans are disrupted?",
-    "Do you often procrastinate and leave tasks until the last minute?",
-    "Do you find it easy to adapt to new situations?",
-    "Do you prefer to stick to a routine rather than try new things?",
-    "Are you more interested in the present moment than planning for the future?",
-    "Do you often take the time to analyze your feelings?",
-    "Do you enjoy helping others in emotional or personal ways?",
-    "Do you often overthink decisions, looking at every possible outcome?",
-    "Do you make decisions based on what feels right rather than what seems logical?",
-    "Do you prefer having clear guidelines and rules when making decisions?",
-    "Do you sometimes regret your decisions after they’ve been made?",
-    "Do you prefer working on a project independently rather than as part of a team?",
-    "Do you like having clear deadlines and expectations at work?",
-    "Do you find it easy to work in an unstructured or dynamic environment?",
-    "Do you focus more on the process or the end result of your work?",
-    "Do you feel uncomfortable in unfamiliar social situations?",
-    "Do you find small talk difficult or unappealing?",
-    "Are you the one who often initiates conversations in social settings?",
-    "Guess Personality..."
-    #"Do you prefer one-on-one interactions over group settings?"
-    ]
-    # Predefined Personalities
-    mbti_types = [
-    "INTJ", "INTP", "ENTJ", "ENTP",
-    "INFJ", "INFP", "ENFJ", "ENFP",
-    "ISTJ", "ISFJ", "ESTJ", "ESFJ",
-    "ISTP", "ISFP", "ESTP", "ESFP"
-    ]
-    
-    # Load Train Data
-    data=dict()
-
-    for mbti in mbti_types:
-        data[mbti] = []
-        for i in range(1,4):
-            mbti_low = mbti.lower()
-            array_name=f"{mbti_low}{i}"
-            if hasattr(personsMBTI, array_name):
-                data[mbti].append(getattr(personsMBTI,array_name))
-
-        
-    
-    # Initialize environment and policy network
-    env = menv.MBTIEnvironment(mbti_type=random.choice(mbti_types), questions=questions, mbti_types=mbti_types,
-                                simulation_dataset=data, max_steps=10)
-    policy_net = polnet.PolicyNetwork(state_size=len(questions), action_size=len(questions))
-    optimizer = optim.Adam(policy_net.parameters(), lr=1e-4)
-
-    # Option to load model or train it
-    load_existing_model = input("Do you want to load an existing model? (yes/no): ").strip().lower()
-    if load_existing_model == 'yes':
-        load_model(policy_net)
-    else:
-        print("Training new model...")
-    rewards = train_policy_network(env, policy_net, optimizer)
-
-    save_model(policy_net)
+    root = Tk()
+    app = MBTIApp(root)
+    root.mainloop()
